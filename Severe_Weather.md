@@ -8,9 +8,7 @@ output:
     keep_md: true
 ---
 
-```{r setoptions, echo= FALSE, message = FALSE}
-knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
-```
+
 
 
 # Synopsis
@@ -28,13 +26,15 @@ For further information about the data, please check:
 - National Climatic Data Center Storm Events [FAQ](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf).  
 
 
-```{r libraries, echo=TRUE, message = FALSE}
+
+```r
 library(tidyverse)
 library(lubridate)
 library(stringr)
 ```
 
-```{r loading}
+
+```r
 url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 destfile <- file.path(".", "StormData.csv.bz2")
 download.file(url, method = "curl", destfile = destfile)
@@ -43,22 +43,62 @@ stormdata <- as_tibble(read.csv(destfile, stringsAsFactors = FALSE))
 
 ## Exploring the data
 We first look at the basic properties of the data inn order to orient our analysis. 
-```{r dimnames}
+
+```r
 dim(stormdata)
+```
+
+```
+## [1] 902297     37
+```
+
+```r
 names(stormdata)
+```
+
+```
+##  [1] "STATE__"    "BGN_DATE"   "BGN_TIME"   "TIME_ZONE"  "COUNTY"    
+##  [6] "COUNTYNAME" "STATE"      "EVTYPE"     "BGN_RANGE"  "BGN_AZI"   
+## [11] "BGN_LOCATI" "END_DATE"   "END_TIME"   "COUNTY_END" "COUNTYENDN"
+## [16] "END_RANGE"  "END_AZI"    "END_LOCATI" "LENGTH"     "WIDTH"     
+## [21] "F"          "MAG"        "FATALITIES" "INJURIES"   "PROPDMG"   
+## [26] "PROPDMGEXP" "CROPDMG"    "CROPDMGEXP" "WFO"        "STATEOFFIC"
+## [31] "ZONENAMES"  "LATITUDE"   "LONGITUDE"  "LATITUDE_E" "LONGITUDE_"
+## [36] "REMARKS"    "REFNUM"
 ```
 It is an extensive database with over 900,000 lines and 37 variables. We see variable names such as "EVTYPE" which can help us identify the different types of weather related events. We will focus on variables "FATALITIES" and "INJURIES" to assess impact on human life, and "PROPDMG" and "CROPDMG" for the economic impact. 
 
-```{r evtype}
+
+```r
 #How many event types do we have?
 evtype <- stormdata$EVTYPE
 length(unique(evtype))
-head(unique(evtype),20)
+```
 
+```
+## [1] 985
+```
+
+```r
+head(unique(evtype),20)
+```
+
+```
+##  [1] "TORNADO"                   "TSTM WIND"                
+##  [3] "HAIL"                      "FREEZING RAIN"            
+##  [5] "SNOW"                      "ICE STORM/FLASH FLOOD"    
+##  [7] "SNOW/ICE"                  "WINTER STORM"             
+##  [9] "HURRICANE OPAL/HIGH WINDS" "THUNDERSTORM WINDS"       
+## [11] "RECORD COLD"               "HURRICANE ERIN"           
+## [13] "HURRICANE OPAL"            "HEAVY RAIN"               
+## [15] "LIGHTNING"                 "THUNDERSTORM WIND"        
+## [17] "DENSE FOG"                 "RIP CURRENT"              
+## [19] "THUNDERSTORM WINS"         "FLASH FLOOD"
 ```
 There are **over 600 types of events**, but looking at a small sample we already notice quite a few duplicates. We will have to remove some of these duplicates to have a clearer picture when we aggregate the data.  
 
-```{r duplicates}
+
+```r
 stormdata <- stormdata %>% 
         mutate(year = year(mdy_hms(BGN_DATE))) %>% # year of event
         mutate(EVTYPE= str_to_upper(EVTYPE)) %>% # upper case
@@ -77,10 +117,15 @@ stormdata <- stormdata %>%
 Our approach to identify the type of events with  most impact is to **aggregate casualties and damages across all years** of the data. However, we also want to **incorporate the idea of frequency**, in order to keep the time dimension in our analysis. This will help us differentiate rare event types that have great impact and other events that occur almost every year, and aggregate to large tolls slowly and almost predictably. We expect this frequency dimension to affect public response policies.  
 
 
-```{r}
+
+```r
 # How many years of dota do we have?
 years <- length(unique(year(mdy_hms(stormdata$BGN_DATE))))
 years
+```
+
+```
+## [1] 62
 ```
 
 
@@ -91,7 +136,8 @@ To assess the impact of events of human health, we filter the data for events th
 After grouping data by event type, we aggregate fatalities and injuries in each group, across the whole US, across all the years the data was recorded.  We also keep track of the event count, that is the number of times an event type has  occurred over the years. We introduce the notion of **frequency: what percentage of years this particular type of event has occurred and made casualties?**  
 Finally we order event types by total death toll, injuries and frequency. 
 
-```{r}
+
+```r
 harmful <- stormdata %>% 
         filter(FATALITIES > 0 | INJURIES > 0) %>%
         group_by(EVTYPE) %>%
@@ -101,16 +147,33 @@ harmful <- stormdata %>%
 ```
 We can now have a look at the 10 weather event types that have most impacted human life and health.
 
-```{r showharm}
-harmful[1:10,]
 
+```r
+harmful[1:10,]
+```
+
+```
+## # A tibble: 10 x 5
+##    EVTYPE            deaths injuries count frequency
+##    <chr>              <dbl>    <dbl> <int>     <dbl>
+##  1 TORNADO             5633    91346  7928     100  
+##  2 EXCESS HEAT         3178     9241   945      30.6
+##  3 FLOOD               1525     8604  1411      30.6
+##  4 LIGHTNING            816     5230  3305      30.6
+##  5 THUNDERSTORM WIND    753     9493  4026      46.8
+##  6 RIP CURRENT          577      529   639      29  
+##  7 EXTREME COLD         458      320   339      30.6
+##  8 HIGH WIND            248     1137   525      30.6
+##  9 AVALANCHE            224      170   239      29  
+## 10 WINTER STORM         206     1321   227      29
 ```
 It is very clear that **tornadoes are the most lethal weather event, with more than 5000 lives claimed, and over 90,000 injured**. Even more impressively, we see that they cause harm to populations **every single year for 62 years**. Hence it is clear that tornadoes should be a top priority for policies to keep populations prepared and safe.   
 Another notable fact is that, despite the geographical position of the US in temperate climate latitudes (or maybe because of it) **heatwaves cause rather surprisingly large number of deaths**, and as frequently as extreme cold, or floods.  
 
 In order to visualize these results, we calculate the cumulative death toll for each of our top 3 categories across the period.
 
-```{r top3}
+
+```r
 tornado <- stormdata %>% filter(EVTYPE=="TORNADO") %>%
         group_by(year)%>%summarise(tornado_deaths= sum(FATALITIES))%>%
         mutate(cum_tornado_toll = cumsum(tornado_deaths)) %>%
@@ -128,7 +191,8 @@ flood <- stormdata %>% filter(EVTYPE=="FLOOD") %>%
 ```
 
 
-```{r graph, fig.align='center'}
+
+```r
 cum_toll <- left_join(tornado, heat, by = "year")
 cum_toll <- left_join(cum_toll, flood, by = "year")
 cum_toll <- cum_toll %>% mutate(heat= ifelse(is.na(heat),0,heat))%>%
@@ -142,12 +206,15 @@ graph <- graph + labs(subtitle="Cumulative death toll from 1951 to 2011")
 print(graph)
 ```
 
+<img src="Severe_Weather_files/figure-html/graph-1.png" style="display: block; margin: auto;" />
+
 
 ## Economic consequences
 We carry out a similar analysis in order to determine the most damaging event types from an economic standpoint. 
 First, however, we need to make variables "PROPDMG" and "CROPDMG" fit for comparisons and summation. The order of magnitude of these variables is encoded in separate variables "PROPDMGEXP" and "CROPDMGEXP" which indicate whether figures are in billions, or millions and so forth. Hence we create a numeric multiplier for each measure.   
 
-```{r damages}
+
+```r
 damages <- stormdata %>% 
         filter(PROPDMG > 0 | CROPDMG > 0) %>%
         mutate(PROPDMGEXP = str_to_upper(PROPDMGEXP),
@@ -167,7 +234,8 @@ damages <- stormdata %>%
 
 Here again we summarize by event type, we take the total economic impact by combining damages to crops and property into one number, across all years and across the whole country. Figures are expressed in millions USD.
 
-```{r sumdamages}
+
+```r
 damages <- damages %>% 
         group_by(EVTYPE) %>%
         summarise(economic_damage= round((sum(prop_dmg) + sum(crop_dmg))/1e6) ,
@@ -176,7 +244,24 @@ damages <- damages %>%
         arrange(desc(economic_damage), desc(damage_per_occurrence))
 ```
 
-```{r showdamage, cache=FALSE}
+
+```r
 damages[1:10,]
+```
+
+```
+## # A tibble: 10 x 4
+##    EVTYPE            economic_damage  count damage_per_occurrence
+##    <chr>                       <dbl>  <int>                 <dbl>
+##  1 FLOOD                      179910  32037                     6
+##  2 HURRICANE                   90271    213                   424
+##  3 TORNADO                     57352  39361                     1
+##  4 STORM SURGE                 43324    173                   250
+##  5 HAIL                        18758  25969                     1
+##  6 DROUGHT                     15019    266                    56
+##  7 THUNDERSTORM WIND           12623 117700                     0
+##  8 ICE STORM                    8967    667                    13
+##  9 TROPICAL STORM               8382    407                    21
+## 10 WINTER STORM                 6715   1389                     5
 ```
 We see that, **in total over the years, floods have caused more economic damage (180 bn USD) than any other event**. But it is worth noting that **hurricane cause half as much damage (90 bn USD), in just over 200 occurrences** compared to 32000 cases of floods. It is another case where one type of event accumulates damages incrementally over time, while another causes devastation at a substantially higher rate at each occurrence.   

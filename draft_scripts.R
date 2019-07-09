@@ -44,6 +44,32 @@ harmful <- stormdata %>% #filter(year > 2000) %>%
                   frequency = round(n_distinct(year) /years *100, 1))%>%
         arrange(desc(deaths), desc(injuries), desc(frequency))
 
+tornado <- stormdata %>% filter(EVTYPE=="TORNADO") %>%
+        group_by(year)%>%summarise(tornado_deaths= sum(FATALITIES))%>%
+        mutate(cum_tornado_toll = cumsum(tornado_deaths)) %>%
+        select(year, cum_tornado_toll) %>% rename(tornado = cum_tornado_toll)
+        
+heat <- stormdata %>% filter(EVTYPE=="EXCESS HEAT") %>%
+        group_by(year)%>%summarise(heat_deaths= sum(FATALITIES))%>%
+        mutate(cum_heat_toll = cumsum(heat_deaths))%>%
+        select(year, cum_heat_toll)%>% rename(heat=cum_heat_toll)
+
+flood <- stormdata %>% filter(EVTYPE=="FLOOD") %>%
+        group_by(year)%>%summarise(flood_deaths= sum(FATALITIES))%>%
+        mutate(cum_flood_toll = cumsum(flood_deaths))%>%
+        select(year, cum_flood_toll)%>% rename(flood=cum_flood_toll)
+
+cum_toll <- left_join(tornado, heat, by = "year")
+cum_toll <- left_join(cum_toll, flood, by = "year")
+cum_toll <- cum_toll %>% mutate(heat= ifelse(is.na(heat),0,heat))%>%
+        mutate(flood = ifelse(is.na(flood),0,flood))%>%
+        gather(key = "event" ,value = cum_death_toll, -year)
+
+graph <- ggplot(data = cum_toll, aes(x=year, y=cum_death_toll,color= event))
+graph <- graph + geom_line() + labs(x="Year", y="cumulative death toll")
+graph <- graph + labs(title="Weather events threatening human life")
+graph <- graph + labs(subtitle="US: 1951 ~ 2011")
+print(graph)
 # harm <- stormdata %>% 
 #         filter(FATALITIES >0 | INJURIES >0) %>%
 #         mutate(year = year(mdy_hms(BGN_DATE))) %>%
