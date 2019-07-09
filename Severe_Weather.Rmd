@@ -1,0 +1,30 @@
+---
+title: "Severe Weather events in the US - 1950 to 2011"
+author: "Lamine Gaye"
+date: "08/07/2019"
+output: html_document
+---
+
+```{r setoptions, echo= FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+
+# Synopsis
+THe aim of this report is to examine past storms and severe weather events in the US in order to determine, in one hand which types of events are most harmful with respect to population health, and on the other hand which types of events have the greatest economic consequences. Answering these questions may guide us on how to prioritize resources in the area of disacter prevention and relief. 
+In order to answer these questions, we have obtained and examined data from the US National Oceanic and Atmospheric Administration's (NOAA) storm database, specifically data from 1950 to 2011. 
+
+# Data Processing 
+```{r libraries, echo=TRUE, message = FALSE}
+library(tidyverse)
+library(lubridate)
+```
+
+## Downloading and reading the data
+
+
+
+
+# Results
+
+
